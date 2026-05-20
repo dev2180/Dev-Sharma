@@ -80,9 +80,22 @@ export function AudioPlayer() {
     const audio = audioRef.current;
     if (audio) {
       setIsBuffering(true);
+      audio.volume = 0; // Start completely silent
       audio.play().then(() => {
         setPlaying(true);
         setIsBuffering(false);
+        
+        // Smoothly fade in volume from 0 to 1 over 1.5 seconds
+        let currentVol = 0;
+        const fadeInterval = setInterval(() => {
+          currentVol += 0.05;
+          if (currentVol >= 1.0) {
+            audio.volume = 1.0;
+            clearInterval(fadeInterval);
+          } else {
+            audio.volume = currentVol;
+          }
+        }, 75);
       }).catch((e) => {
         console.warn("Audio playback failed:", e);
         setIsBuffering(false);
