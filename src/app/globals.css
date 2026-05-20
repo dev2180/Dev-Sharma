@@ -1,26 +1,491 @@
 @import "tailwindcss";
 
+/* ─── Design Tokens ─────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-bg:       #0a0a0a;
+  --color-surface:  rgba(255,255,255,0.04);
+  --color-border:   rgba(255,255,255,0.08);
+  --color-accent:   #007AFF;
+  --color-white:    #ffffff;
+
+  --radius-card:    2rem;
+  --radius-inner:   calc(2rem - 6px);
+  --radius-pill:    9999px;
+
+  /* Fluid clamp typography */
+  --text-hero:      clamp(3.5rem, 8vw, 8rem);
+  --text-section:   clamp(2rem, 5vw, 4rem);
+  --text-body:      clamp(0.9rem, 1.2vw, 1.05rem);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ─── Reset ─────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: auto; /* Lenis handles this */
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-white);
+  font-family: var(--font-body), system-ui, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* Selection */
+::selection {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* ─── Cursor ─────────────────────────────────────────────────────── */
+* { cursor: none; }
+
+/* ─── Double-Bezel Card System (Liquid Glass Refraction) ──────────── */
+.card-shell {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 6px;
+}
+
+.card-inner {
+  position: relative !important;
+  background: rgba(15,15,20,0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-inner);
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 20px 40px -15px rgba(0,0,0,0.5);
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Elite Spotlight Hover Highlights */
+.tilt-card-spotlight {
+  position: relative;
+}
+
+.tilt-card-spotlight .card-shell {
+  position: relative;
+  transition: border-color 0.3s ease;
+}
+
+/* Glowing spotlight border around card-shell (outer double-bezel) */
+.tilt-card-spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-card);
+  padding: 1px;
+  background: radial-gradient(
+    320px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(0, 122, 255, 0.45),
+    transparent 80%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 30;
+}
+
+.tilt-card-spotlight:hover::before {
+  opacity: 1;
+}
+
+/* Inner glass spotlight glow refractor (blends typography & shader) */
+.tilt-card-spotlight .card-inner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    260px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(0, 122, 255, 0.1),
+    transparent 80%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  z-index: 1;
+}
+
+.tilt-card-spotlight:hover .card-inner::after {
+  opacity: 1;
+}
+
+/* ─── Marquee Animation ───────────────────────────────────────────── */
+@keyframes marquee-left {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes marquee-right {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+
+.marquee-track-left {
+  display: flex;
+  gap: 2rem;
+  width: max-content;
+  animation: marquee-left 28s linear infinite;
+  will-change: transform;
+}
+.marquee-track-right {
+  display: flex;
+  gap: 2rem;
+  width: max-content;
+  animation: marquee-right 28s linear infinite;
+  will-change: transform;
+}
+
+.marquee-track-left:hover,
+.marquee-track-right:hover {
+  animation-play-state: paused;
+}
+
+/* ─── Accordion ──────────────────────────────────────────────────── */
+.accordion-item {
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-border);
+  transition: background 0.4s cubic-bezier(0.32,0.72,0,1);
+}
+.accordion-item:hover {
+  background: rgba(255,255,255,0.03);
+}
+
+/* ─── GSAP Fade-in base states ────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  filter: blur(4px);
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.15);
+  border-radius: 2px;
+}
+
+/* ─── Font Display Mapping ───────────────────────────────────────── */
+.font-display {
+  font-family: var(--font-display), sans-serif;
+}
+
+/* ─── Tailwind JIT Fallback Utilities (Guarantees Alignment & Padding) ─── */
+.mx-auto {
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+.w-full {
+  width: 100% !important;
+}
+.max-w-7xl {
+  max-width: 80rem !important; /* 1280px */
+}
+.max-w-5xl {
+  max-width: 64rem !important; /* 1024px */
+}
+.max-w-xl {
+  max-width: 36rem !important; /* 576px */
+}
+
+/* Flexbox Layout & Alignment */
+.flex {
+  display: flex !important;
+}
+.flex-col {
+  flex-direction: column !important;
+}
+.flex-wrap {
+  flex-wrap: wrap !important;
+}
+.items-center {
+  align-items: center !important;
+}
+.justify-center {
+  justify-content: center !important;
+}
+.justify-between {
+  justify-content: space-between !important;
+}
+.text-center {
+  text-align: center !important;
+}
+.text-left {
+  text-align: left !important;
+}
+
+/* Standard Paddings */
+.p-8 {
+  padding: 2rem !important;
+}
+.p-6 {
+  padding: 1.5rem !important;
+}
+.px-6 {
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+}
+.px-5 {
+  padding-left: 1.25rem !important;
+  padding-right: 1.25rem !important;
+}
+.px-4 {
+  padding-left: 1rem !important;
+  padding-right: 1rem !important;
+}
+.py-2 {
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+}
+.py-2\.5 {
+  padding-top: 0.625rem !important;
+  padding-bottom: 0.625rem !important;
+}
+.py-6 {
+  padding-top: 1.5rem !important;
+  padding-bottom: 1.5rem !important;
+}
+.py-16 {
+  padding-top: 4rem !important;
+  padding-bottom: 4rem !important;
+}
+.py-32 {
+  padding-top: 8rem !important;
+  padding-bottom: 8rem !important;
+}
+.py-48 {
+  padding-top: 12rem !important;
+  padding-bottom: 12rem !important;
+}
+.pb-8 {
+  padding-bottom: 2rem !important;
+}
+.pl-2 {
+  padding-left: 0.5rem !important;
+}
+.pr-5 {
+  padding-right: 1.25rem !important;
+}
+.pl-11 {
+  padding-left: 2.75rem !important;
+}
+
+/* Gaps */
+.gap-6 {
+  gap: 1.5rem !important;
+}
+.gap-5 {
+  gap: 1.25rem !important;
+}
+.gap-4 {
+  gap: 1rem !important;
+}
+.gap-3 {
+  gap: 0.75rem !important;
+}
+.gap-2 {
+  gap: 0.5rem !important;
+}
+
+/* Responsive Grid Mechanics */
+.grid {
+  display: grid !important;
+}
+.grid-cols-12 {
+  grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
+}
+.col-span-12 {
+  grid-column: span 12 / span 12 !important;
+}
+
+@media (min-width: 768px) {
+  .md\:col-span-8 {
+    grid-column: span 8 / span 8 !important;
+  }
+  .md\:col-span-4 {
+    grid-column: span 4 / span 4 !important;
+  }
+  .md\:flex {
+    display: flex !important;
+  }
+}
+
+/* Solid Box-Sizing & Word Wrap to Prevent Visual Spill */
+*, *::before, *::after {
+  box-sizing: border-box !important;
+}
+
+.project-card, .li-card, .accordion-item, .card-inner, p, h1, h2, h3, li, a, span, button {
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+.hero-ctas a, .card-inner a, button {
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* main layout alignment context and click-safety stack */
+main {
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* absolute navbar centering lock & styling with premium smooth-entry transitions */
+.navbar-custom {
+  position: fixed !important;
+  top: 1.25rem !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  width: max-content !important;
+  z-index: 9999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
+  padding: 0.625rem 1.25rem !important;
+  border-radius: 9999px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  gap: 1.5rem !important;
+  
+  /* Initial hidden state */
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(-20px) !important;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform, opacity;
+}
+
+/* Shown state when experience is entered */
+.experience-entered .navbar-custom {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  transform: translateY(0) !important;
+}
+
+/* Nav Logo */
+.nav-logo {
+  font-family: var(--font-display), sans-serif !important;
+  font-size: 1.25rem !important;
+  color: #007AFF !important;
+  letter-spacing: 0.1em !important;
+  font-weight: normal !important;
+}
+
+/* Nav Links Container */
+.nav-links-container {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1.25rem !important;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.12em !important;
+}
+
+.nav-link-item {
+  color: rgba(255, 255, 255, 0.6) !important;
+  text-decoration: none !important;
+  transition: color 0.3s ease !important;
+}
+
+.nav-link-item:hover {
+  color: #ffffff !important;
+}
+
+@media (max-width: 767px) {
+  .nav-links-container {
+    display: none !important;
+  }
+}
+
+/* Nav Resume Button with explicit premium padding and transitions */
+.nav-resume-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  padding-left: 0.875rem !important;
+  padding-right: 0.375rem !important;
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+  border-radius: 9999px !important;
+  background-color: rgba(0, 122, 255, 0.1) !important;
+  border: 1px solid rgba(0, 122, 255, 0.3) !important;
+  color: #007AFF !important;
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-decoration: none !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.nav-resume-btn:hover {
+  background-color: rgba(0, 122, 255, 0.25) !important;
+  border-color: rgba(0, 122, 255, 0.6) !important;
+  transform: translateY(-1px) !important;
+}
+
+.nav-resume-btn-icon {
+  width: 1.25rem !important;
+  height: 1.25rem !important;
+  border-radius: 9999px !important;
+  background-color: rgba(0, 122, 255, 0.2) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.nav-resume-btn:hover .nav-resume-btn-icon {
+  transform: translate(1.5px, -1.5px) !important;
+}
+
+/* Elite, hardware-accelerated breathing effect for the hero keyword */
+.animate-breath {
+  display: inline-block !important;
+  animation: breath 3.5s ease-in-out infinite alternate !important;
+  will-change: transform, filter;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+@keyframes breath {
+  0% {
+    transform: scale(1) translateZ(0);
+    text-shadow: 0 0 0px rgba(0, 122, 255, 0);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.06) translateZ(0);
+    text-shadow: 0 0 20px rgba(0, 122, 255, 0.4), 0 0 40px rgba(0, 122, 255, 0.15);
+    filter: brightness(1.15);
+  }
+  100% {
+    transform: scale(1.02) translateZ(0);
+    text-shadow: 0 0 10px rgba(0, 122, 255, 0.2);
+    filter: brightness(1.05);
+  }
+}
+
