@@ -79,18 +79,10 @@ export default function RootLayout({
               // Clear active service workers from previous site versions to prevent cache collisions
               try {
                 if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-                  navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                    for (var i = 0; i < registrations.length; i++) {
-                      registrations[i].unregister().catch(function(err) {
-                        console.error('Error unregistering service worker:', err);
-                      });
-                    }
-                  }).catch(function(err) {
-                    console.error('Error getting service worker registrations:', err);
-                  });
+                  navigator.serviceWorker.register('/Dev-Sharma/sw.js').catch(function (err) { console.warn('SW registration failed:', err); });
                 }
               } catch (swErr) {
-                console.error('Service worker cleanup failed:', swErr);
+                console.error('Service worker registration failed:', swErr);
               }
             `
           }}
