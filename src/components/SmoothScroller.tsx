@@ -25,7 +25,7 @@ export function SmoothScroller() {
       smoothWheel: true,
       wheelMultiplier: 1,
       touchMultiplier: 2,
-      infinite: true,
+      infinite: typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches,
     });
 
     if (destroyed) { lenis.destroy(); return; } // ← bail if already unmounted
