@@ -38,13 +38,18 @@ export default function RootLayout({
               window.addEventListener('error', function(e) {
                 try {
                   if (e.message && (e.message.indexOf('ChunkLoadError') !== -1 || e.message.indexOf('Loading chunk') !== -1)) {
-                    var lastReload = null;
-                    try {
-                      lastReload = window.sessionStorage ? window.sessionStorage.getItem('last_chunk_reload') : null;
-                    } catch (err) {
-                      console.warn('sessionStorage access blocked:', err);
-                    }
                     var now = Date.now();
+                    var urlParams = new URLSearchParams(window.location.search);
+                    var lastReload = urlParams.get('r');
+                    
+                    if (!lastReload) {
+                      try {
+                        lastReload = window.sessionStorage ? window.sessionStorage.getItem('last_chunk_reload') : null;
+                      } catch (err) {
+                        console.warn('sessionStorage access blocked:', err);
+                      }
+                    }
+                    
                     if (!lastReload || (now - parseInt(lastReload, 10)) > 10000) {
                       try {
                         if (window.sessionStorage) {
@@ -54,7 +59,12 @@ export default function RootLayout({
                         console.warn('sessionStorage set blocked:', err);
                       }
                       console.warn('Chunk load error caught. Auto-recovering...');
-                      window.location.reload();
+                      
+                      var newSearch = new URLSearchParams(window.location.search);
+                      newSearch.set('r', now.toString());
+                      window.location.search = newSearch.toString();
+                    } else {
+                      console.error('Multiple chunk load errors within 10 seconds. Halting recovery to prevent loop.');
                     }
                   }
                 } catch (handlerErr) {

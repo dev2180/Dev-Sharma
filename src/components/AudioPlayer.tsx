@@ -132,8 +132,6 @@ export function AudioPlayer() {
     if (playing) setIsBuffering(false);
   };
 
-  if (!mounted) return null;
-
   return (
     <>
       {/* Immersive Audio Element */}
