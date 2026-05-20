@@ -36,29 +36,47 @@ export default function RootLayout({
             __html: `
               // Auto-recover from chunk load/network errors
               window.addEventListener('error', function(e) {
-                if (e.message && (e.message.indexOf('ChunkLoadError') !== -1 || e.message.indexOf('Loading chunk') !== -1)) {
-                  var lastReload = sessionStorage.getItem('last_chunk_reload');
-                  var now = Date.now();
-                  if (!lastReload || (now - parseInt(lastReload, 10)) > 10000) {
-                    sessionStorage.setItem('last_chunk_reload', now);
-                    console.warn('Chunk load error caught. Auto-recovering...');
-                    window.location.reload();
+                try {
+                  if (e.message && (e.message.indexOf('ChunkLoadError') !== -1 || e.message.indexOf('Loading chunk') !== -1)) {
+                    var lastReload = null;
+                    try {
+                      lastReload = window.sessionStorage ? window.sessionStorage.getItem('last_chunk_reload') : null;
+                    } catch (err) {
+                      console.warn('sessionStorage access blocked:', err);
+                    }
+                    var now = Date.now();
+                    if (!lastReload || (now - parseInt(lastReload, 10)) > 10000) {
+                      try {
+                        if (window.sessionStorage) {
+                          window.sessionStorage.setItem('last_chunk_reload', now.toString());
+                        }
+                      } catch (err) {
+                        console.warn('sessionStorage set blocked:', err);
+                      }
+                      console.warn('Chunk load error caught. Auto-recovering...');
+                      window.location.reload();
+                    }
                   }
+                } catch (handlerErr) {
+                  console.error('Error in ChunkLoadError handler:', handlerErr);
                 }
               });
 
               // Clear active service workers from previous site versions to prevent cache collisions
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                  for (var i = 0; i < registrations.length; i++) {
-                    registrations[i].unregister().then(function(success) {
-                      if (success) {
-                        console.log('Unregistered active service worker. Refreshing...');
-                        window.location.reload();
-                      }
-                    });
-                  }
-                });
+              try {
+                if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    for (var i = 0; i < registrations.length; i++) {
+                      registrations[i].unregister().catch(function(err) {
+                        console.error('Error unregistering service worker:', err);
+                      });
+                    }
+                  }).catch(function(err) {
+                    console.error('Error getting service worker registrations:', err);
+                  });
+                }
+              } catch (swErr) {
+                console.error('Service worker cleanup failed:', swErr);
               }
             `
           }}
