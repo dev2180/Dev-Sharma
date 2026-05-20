@@ -4,6 +4,7 @@ const isProd = process.env.NODE_ENV === "production";
 
 const nextConfig: NextConfig = {
   output: "export",
+  reactStrictMode: false,
   basePath: isProd ? "/Dev-Sharma" : undefined,
   images: {
     unoptimized: true,
