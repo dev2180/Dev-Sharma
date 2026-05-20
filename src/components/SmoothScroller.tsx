@@ -7,9 +7,9 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 export function SmoothScroller() {
   useEffect(() => {
-    // Disable browser scroll history restoration and reset to top
+    let destroyed = false;
+
     if (typeof window !== "undefined") {
-      // Clear URL hash to prevent automatic scrolling to anchor elements on reload
       if (window.location.hash) {
         window.history.replaceState(null, "", window.location.pathname);
       }
@@ -25,22 +25,21 @@ export function SmoothScroller() {
       smoothWheel: true,
       wheelMultiplier: 1,
       touchMultiplier: 2,
-      infinite: true, // User requested infinite scroll back
+      infinite: true,
     });
 
-    // Reset scroller instance to top immediately
-    lenis.scrollTo(0, { immediate: true });
+    if (destroyed) { lenis.destroy(); return; } // ← bail if already unmounted
 
-    // Connect Lenis to GSAP ScrollTrigger
+    lenis.scrollTo(0, { immediate: true });
     lenis.on("scroll", ScrollTrigger.update);
 
-    // Use GSAP ticker instead of rAF for frame sync
     gsap.ticker.lagSmoothing(0);
     const tickerFn = (time: number) => lenis.raf(time * 1000);
     gsap.ticker.add(tickerFn);
 
     return () => {
-      gsap.ticker.lagSmoothing(1); // restore default
+      destroyed = true;
+      gsap.ticker.lagSmoothing(1);
       gsap.ticker.remove(tickerFn);
       lenis.destroy();
     };
