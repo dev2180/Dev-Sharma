@@ -7,6 +7,7 @@ export function AudioPlayer() {
   const [playing, setPlaying] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [audioLoaded, setAudioLoaded] = useState(false);
 
   // Cinematic preloader states
   const [hasEntered, setHasEntered] = useState(false);
@@ -44,6 +45,25 @@ export function AudioPlayer() {
       document.body.style.overflow = "";
     };
   }, [hasEntered]);
+
+  // Sync initial audio readyState to capture cached fetches immediately
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio && audio.readyState >= 3) {
+      setAudioLoaded(true);
+    }
+  }, []);
+
+  // Force enter-experience backup timer to prevent slow connection soft-locks (8s max wait)
+  useEffect(() => {
+    if (progress === 100 && !audioLoaded) {
+      const timer = setTimeout(() => {
+        console.warn("Audio loading timed out (8s backup trigger). Enabling entrance fallback.");
+        setAudioLoaded(true);
+      }, 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [progress, audioLoaded]);
 
   const enterExperience = () => {
     setIsExiting(true);
@@ -94,7 +114,8 @@ export function AudioPlayer() {
     }
   };
 
-  const handleCanPlay = () => {
+  const handleAudioCanPlay = () => {
+    setAudioLoaded(true);
     if (playing) setIsBuffering(false);
   };
 
@@ -108,7 +129,8 @@ export function AudioPlayer() {
         src={`${process.env.NODE_ENV === "production" ? "/Dev-Sharma" : ""}/bg-music.mp3`} 
         loop 
         preload="auto"
-        onCanPlayThrough={handleCanPlay}
+        onCanPlay={handleAudioCanPlay}
+        onCanPlayThrough={handleAudioCanPlay}
         onWaiting={() => playing && setIsBuffering(true)}
         onPlaying={() => setIsBuffering(false)}
       />
@@ -142,18 +164,25 @@ export function AudioPlayer() {
             </h1>
 
             {/* Progress / CTA Display */}
-            {progress < 100 ? (
+            {progress < 100 || !audioLoaded ? (
               <div className="flex flex-col items-center gap-4 w-64">
                 <div className="font-mono text-[10px] text-white/50 tracking-widest uppercase flex justify-between w-full">
-                  <span>Loading Assets</span>
-                  <span className="text-white font-bold">{progress}%</span>
+                  <span>{progress < 100 ? "Loading Assets" : "Buffering Audio"}</span>
+                  <span className="text-white font-bold">{progress < 100 ? `${progress}%` : "Readying"}</span>
                 </div>
                 <div className="w-full h-[1px] bg-white/10 overflow-hidden relative rounded-full">
                   <div 
-                    className="h-full bg-[#007AFF] transition-all duration-300 ease-out shadow-[0_0_8px_rgba(0,122,255,0.8)]"
-                    style={{ width: `${progress}%` }}
+                    className={`h-full bg-[#007AFF] transition-all duration-300 ease-out shadow-[0_0_8px_rgba(0,122,255,0.8)] ${
+                      progress >= 100 && !audioLoaded ? "animate-pulse w-full" : ""
+                    }`}
+                    style={{ width: progress < 100 ? `${progress}%` : "100%" }}
                   />
                 </div>
+                {progress >= 100 && !audioLoaded && (
+                  <span className="text-[9px] font-mono text-white/30 tracking-[0.2em] uppercase mt-1 animate-pulse">
+                    Tuning spatial soundtrack...
+                  </span>
+                )}
               </div>
             ) : (
               <div className="flex flex-col items-center gap-4 animate-[fadeIn_0.8s_ease-out_forwards]">
