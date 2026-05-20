@@ -34,6 +34,10 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
+              (function() {
+              var r = sessionStorage.getItem('redirect');
+              if (r) { sessionStorage.removeItem('redirect'); window.history.replaceState(null, '', r); }
+              })();
               // Auto-recover from chunk load/network errors
               window.addEventListener('error', function(e) {
                 try {
